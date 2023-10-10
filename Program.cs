@@ -3,20 +3,21 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Linq;
 
 namespace RectangleShape2._0
 {
     internal class Program
     {
-        static string imagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
-        static string outputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+        static string imagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string outputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+
+        static (int X, int Y)[] Corners;
         static void Main(string[] args)
         {
-
             Mat img = CvInvoke.Imread(imagePath, ImreadModes.Color);
 
             if (img == null || img.IsEmpty)
@@ -24,6 +25,9 @@ namespace RectangleShape2._0
                 Console.WriteLine("File could not be read, check if it exists.");
                 return;
             }
+
+            // Check for EXIF orientation tag and rotate the image if needed
+            //int rotationalCase = RotateImageIfNecessaryForMat(ref img, imagePath);
 
             // Convert the image to grayscale
             Mat grayImage = new Mat();
@@ -59,13 +63,8 @@ namespace RectangleShape2._0
             // Draw the largest rectangle on the original image
             CvInvoke.Rectangle(img, largestRotatedRect.MinAreaRect(), new MCvScalar(0, 0, 255), 2);
 
-            // Print the coordinates of the four corners and their locations
-            PointF[] corners = largestRotatedRect.GetVertices();
-            Console.WriteLine("Coordinates of the four corners:");
-            Console.WriteLine("Top Left: " + corners[0].ToString());
-            Console.WriteLine("Top Right: " + corners[1].ToString());
-            Console.WriteLine("Bottom Right: " + corners[2].ToString());
-            Console.WriteLine("Bottom Left: " + corners[3].ToString());
+            // Print the coordinates of the four cornersPoints and their locations
+            PointF[] cornersPoints = largestRotatedRect.GetVertices();
 
             //// Save the resulting image to the specified output path
             //CvInvoke.Imwrite(outputImagePath, img);
@@ -76,46 +75,241 @@ namespace RectangleShape2._0
             //Process.Start(outputImagePath);
 
 
-            string strTopLeft = corners[2].ToString();
-            string strTopRight = corners[3].ToString();
-            string strBottomLeft = corners[1].ToString();
-            string strBottomRight = corners[0].ToString();
+            Corners = new (int X, int Y)[4];
+
+            for (int i = 0; i < cornersPoints.Length; i++)
+            {
+                string currentString = cornersPoints[i].ToString();
+
+                Corners[i] = ((int)Math.Round(Double.Parse(currentString.Substring(currentString.IndexOf('=') + 1, currentString.IndexOf(',') - currentString.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(currentString.Substring(currentString.IndexOf('=', currentString.IndexOf('=') + 1) + 1, currentString.IndexOf('}') - currentString.IndexOf('=', currentString.IndexOf('=') + 1) - 1))));
+            }
+
+            SelectionSortBy_Y(Corners);
+
+            (int X, int Y)[] Top = { Corners[0], Corners[1] };
+            SelectionSortBy_X(Top);
+
+            (int X, int Y)[] Bottom = { Corners[2], Corners[3] };
+            SelectionSortBy_X(Bottom);
+
+            (int X, int Y) corner, corner1;
+
+            /*switch (rotationalCase)
+            {
+                case 1:
+                    {
+                        corner = Top[1];
+                        Top[1] = Top[0];
+                        corner1 = Bottom[1];
+                        Bottom[1] = corner;
+                        corner = Bottom[0];
+                        Bottom[0] = corner1;
+                        Top[0] = corner;
+                    }
+                    break;
+                case 2:
+                    {
+                        corner = Top[0];
+                        Top[0] = Top[1];
+                        corner1 = Bottom[0];
+                        Bottom[0] = corner;
+                        corner = Bottom[1];
+                        Bottom[1] = corner1;
+                        Top[1] = corner;
+                    }
+                    break;
+            }*/
+
+            Corners = Top.Concat(Bottom).ToArray();
+
+            for (int i = 0; i < Top.Length; i++)
+                Console.WriteLine($"{Top[i].X} {Top[i].Y}");
+
+            for (int i = 0; i < Bottom.Length; i++)
+                Console.WriteLine($"{Bottom[i].X} {Bottom[i].Y}");
+
+            /*string strTopLeft = cornersPoints[0].ToString();
+            string strTopRight = cornersPoints[1].ToString();
+            string strBottomLeft = cornersPoints[2].ToString();
+            string strBottomRight = cornersPoints[3].ToString();
 
             string CurrnetStr = strTopLeft;
-            (int X, int Y) TopLeft = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
+            //(int Y, int Y) FirstCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
 
-            CurrnetStr = strTopRight;
-            (int X, int Y) TopRight = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
+            //CurrnetStr = strTopRight;
+            //(int Y, int Y) SecondCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
 
-            CurrnetStr = strBottomLeft;
-            (int X, int Y) BottomLeft = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
+            //CurrnetStr = strBottomLeft;
+            //(int Y, int Y) ThirdCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
 
-            CurrnetStr = strBottomRight;
-            (int X, int Y) BottomRight = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
+            //CurrnetStr = strBottomRight;
+            //(int Y, int Y) FourthCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
 
 
-            int x = TopLeft.X; // X-coordinate of the top-left corner
+            int[,] coordinatesArray = StoreCoordinatesInArray(FirstCorner, SecondCorner, ThirdCorner, FourthCorner);*/
+
+
+            (int X, int Y) TopLeft = (Top[0].X, Top[0].Y);
+            (int X, int Y) TopRight = (Top[1].X, Top[1].Y);
+            (int X, int Y) BottomLeft = (Bottom[0].X, Bottom[0].Y);
+            (int X, int Y) BottomRight = (Bottom[1].X, Bottom[1].Y);
+
+
+            int x = TopLeft.X; // Y-coordinate of the top-left corner
             int y = TopLeft.Y; // Y-coordinate of the top-left corner
             int width = TopRight.X - TopLeft.X; // Width of the cropped region
             int height = BottomLeft.Y - TopLeft.Y; // Height of the cropped region
 
-            Bitmap croppedImage = CropImage(imagePath, x, y, width, height);
+            Image image = Image.FromFile(imagePath);
+
+            RotateImageIfNecessaryForMatForImage(ref image, imagePath);
+
+            Bitmap picture = new Bitmap(image, image.Width, image.Height);
+
+            Bitmap croppedImage = CropImage(picture, x, y, width, height);
 
             // Save the cropped image
             croppedImage.Save(outputImagePath, ImageFormat.Jpeg);
 
             // Dispose of the image objects to free up resources
             croppedImage.Dispose();
+            img.Dispose();
 
             Console.WriteLine("Image cropped and saved successfully.");
 
             Process.Start(outputImagePath);
         }
+        static void FindObjectsCorners(ref Bitmap image)
+        {
+            int whichCornerTouches = -1;
+
+            while (whichCornerTouches == -1)
+            {
+
+            }
+        }
+        static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
+        {
+            int rotationalCase = -1;
+            using (Image image = Image.FromFile(imagePath))
+            {
+                // Check for the orientation tag in the EXIF data
+                foreach (PropertyItem propertyItem in image.PropertyItems)
+                {
+                    if (propertyItem.Id == 0x112)
+                    {
+                        // Get the orientation value
+                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+
+                        // Rotate the image based on the orientation tag
+                        switch (orientation)
+                        {
+                            case 3:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate180);
+                                    rotationalCase = 0;
+                                }
+                                break;
+                            case 6:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90CounterClockwise);
+                                    rotationalCase = 1;
+                                }
+                                break;
+                            case 8:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90Clockwise);
+                                    rotationalCase = 2;
+                                }
+                                break;
+                                // Add more cases as needed for other orientations
+                        }
+                    }
+                }
+            }
+            return rotationalCase;
+        }
+        static void RotateImageIfNecessaryForMatForImage(ref Image photo, string imagePath)
+        {
+            using (Image image = Image.FromFile(imagePath))
+            {
+                // Check for the orientation tag in the EXIF data
+                foreach (PropertyItem propertyItem in image.PropertyItems)
+                {
+                    if (propertyItem.Id == 0x112)
+                    {
+                        // Get the orientation value
+                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+
+                        // Rotate the image based on the orientation tag
+                        switch (orientation)
+                        {
+                            case 3:
+                                photo.RotateFlip(RotateFlipType.Rotate180FlipNone);// Rotate180
+                                break;
+                            case 6:
+                                photo.RotateFlip(RotateFlipType.Rotate90FlipNone);// Rotate90CounterClockwise
+                                break;
+                            case 8:
+                                photo.RotateFlip(RotateFlipType.Rotate270FlipNone);// Rotat90Clockwise
+                                break;
+                                // Add more cases as needed for other orientations
+                        }
+                    }
+                }
+            }
+        }
+        public static void SelectionSortBy_Y((int X, int Y)[] arr)
+        {
+            int n = arr.Length;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                int minIndex = i;
+
+                // Find the index of the minimum element in the remaining unsorted portion
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (arr[j].Y < arr[minIndex].Y)
+                    {
+                        minIndex = j;
+                    }
+                }
+
+                // Swap the found minimum element with the element at index Y
+                (int X, int Y) temp = arr[i];
+                arr[i] = arr[minIndex];
+                arr[minIndex] = temp;
+            }
+        }
+        public static void SelectionSortBy_X((int X, int Y)[] arr)
+        {
+            int n = arr.Length;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                int minIndex = i;
+
+                // Find the index of the minimum element in the remaining unsorted portion
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (arr[j].X < arr[minIndex].X)
+                    {
+                        minIndex = j;
+                    }
+                }
+
+                // Swap the found minimum element with the element at index Y
+                (int X, int Y) temp = arr[i];
+                arr[i] = arr[minIndex];
+                arr[minIndex] = temp;
+            }
+        }
         // Function to crop an image based on an array of PointF coordinates
-        static Bitmap CropImage(string imagePath, int x, int y, int width, int height)
+        static Bitmap CropImage(Bitmap image, int x, int y, int width, int height)
         {
             // Load the source image
-            Bitmap sourceImage = new Bitmap(imagePath);
+            Bitmap sourceImage = new Bitmap(image);
 
             // Create a rectangle specifying the cropping region
             Rectangle cropRegion = new Rectangle(x, y, width, height);

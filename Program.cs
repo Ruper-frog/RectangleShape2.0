@@ -21,6 +21,8 @@ namespace RectangleShape2._0
         static Color CornerColor = Color.FromArgb(60, 50, 51);
         static void Main(string[] args)
         {
+            //TODO: align the frame
+
             Mat img = CvInvoke.Imread(imagePath, ImreadModes.Color);
 
             if (img == null || img.IsEmpty)
@@ -216,9 +218,11 @@ namespace RectangleShape2._0
 
             Console.WriteLine(Corners[whichCornerTouches]);
 
-            
+            bool foundCorner = false;
+            for (int i = 0; foundCorner == false; i++)
+                foundCorner = LinearLine(Corners[whichCornerTouches], whichCornerTouches - 2 > 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2], image); 
         }
-        public static void LinearLine(Point startPoint, Point endPoint, Color lineColor)
+        public static bool LinearLine((int X, int Y) startPoint, (int X, int Y) endPoint, Bitmap image)
         {
             // Calculate the slope (incline) between two points
             float slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
@@ -232,8 +236,10 @@ namespace RectangleShape2._0
                 // Calculate the corresponding Y-coordinate using the equation
                 int y = (int)(slope * x + intercept);
 
+                image.GetPixel(x, y);
+
                 // Set the pixel color to draw the line
-                //Picture.SetPixel(x, y, lineColor);
+                //image.SetPixel(x, y, Color.Red);
             }
         }
         static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)

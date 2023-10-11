@@ -16,6 +16,9 @@ namespace RectangleShape2._0
         static string outputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
 
         static (int X, int Y)[] Corners;
+
+        static int ColorDistLimit = 5000;
+        static Color CornerColor = Color.FromArgb(60, 50, 51);
         static void Main(string[] args)
         {
             Mat img = CvInvoke.Imread(imagePath, ImreadModes.Color);
@@ -168,6 +171,13 @@ namespace RectangleShape2._0
 
             Bitmap croppedImage = CropImage(picture, x, y, width, height);
 
+            Corners[0] = (0, 0);
+            Corners[1] = (croppedImage.Width - 1, 0);
+            Corners[2] = (0, croppedImage.Height - 1);
+            Corners[3] = (croppedImage.Width - 1, croppedImage.Height - 1);
+
+            FindObjectsCorners(ref croppedImage);
+
             // Save the cropped image
             croppedImage.Save(outputImagePath, ImageFormat.Jpeg);
 
@@ -185,7 +195,45 @@ namespace RectangleShape2._0
 
             while (whichCornerTouches == -1)
             {
+                for (int i = 0; i < Corners.Length; i++)
+                {
+                    if (ColorDist(image.GetPixel(Corners[i].X, Corners[i].Y), CornerColor))
+                    {
+                        whichCornerTouches = i;
+                        break;
+                    }
+                }
+                if (whichCornerTouches == -1)
+                {
+                    Corners[0] = (Corners[0].X + 1, Corners[0].Y + 1);
+                    Corners[1] = (Corners[1].X - 1, Corners[1].Y + 1);
+                    Corners[2] = (Corners[2].X + 1, Corners[2].Y - 1);
+                    Corners[3] = (Corners[3].X - 1, Corners[3].Y - 1);
+                }
+            }
+            /*for (int i = 0; i < image.Width - Corners[whichCornerTouches].X; i++)
+                image.SetPixel(Corners[whichCornerTouches].X + i, Corners[whichCornerTouches].Y, Color.Red);*/
 
+            Console.WriteLine(Corners[whichCornerTouches]);
+
+            
+        }
+        public static void LinearLine(Point startPoint, Point endPoint, Color lineColor)
+        {
+            // Calculate the slope (incline) between two points
+            float slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
+
+            // Generate the mathematical equation of the line (y = mx + b)
+            float intercept = startPoint.Y - slope * startPoint.X;
+
+            // Iterate through points along the X-axis
+            for (int x = startPoint.X; x <= endPoint.X; x++)
+            {
+                // Calculate the corresponding Y-coordinate using the equation
+                int y = (int)(slope * x + intercept);
+
+                // Set the pixel color to draw the line
+                //Picture.SetPixel(x, y, lineColor);
             }
         }
         static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
@@ -327,6 +375,14 @@ namespace RectangleShape2._0
             sourceImage.Dispose();
 
             return croppedImage;
+        }
+        static bool ColorDist(Color c1, Color c2)
+        {
+            double rDiff = c1.R - c2.R;
+            double gDiff = c1.G - c2.G;
+            double bDiff = c1.B - c2.B;
+
+            return Math.Pow(rDiff, 2) + Math.Pow(gDiff, 2) + Math.Pow(bDiff, 2) <= ColorDistLimit;
         }
     }
 }

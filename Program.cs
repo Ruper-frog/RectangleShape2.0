@@ -15,7 +15,7 @@ namespace RectangleShape2._0
     internal class Program
     {
         //PC
-        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
         static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
 
         //Leptop
@@ -199,13 +199,13 @@ namespace RectangleShape2._0
 
 
             for (int i = 0; i < Corners[0].X; i++)// Draw a line from the edge of the image to the edge of the object
-                croppedImage.SetPixel(Corners[0].X + i, Corners[0].Y, Color.Red);
+                croppedImage.SetPixel(i, Corners[0].Y, Color.Red);
 
             for (int i = 0; i < croppedImage.Width - Corners[1].X; i++)// Draw a line from the edge of the image to the edge of the object
                 croppedImage.SetPixel(Corners[1].X + i, Corners[1].Y, Color.Red);
 
             for (int i = 0; i < Corners[2].X; i++)// Draw a line from the edge of the image to the edge of the object
-                croppedImage.SetPixel(Corners[2].X - i, Corners[2].Y, Color.Red);
+                croppedImage.SetPixel(i, Corners[2].Y, Color.Red);
 
             for (int i = 0; i < croppedImage.Width - Corners[3].X; i++)// Draw a line from the edge of the image to the edge of the object
                 croppedImage.SetPixel(Corners[3].X + i, Corners[3].Y, Color.Red);

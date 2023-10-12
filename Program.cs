@@ -15,24 +15,28 @@ namespace RectangleShape2._0
     internal class Program
     {
         //PC
-        static string imagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
-        static string outputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
 
         //Leptop
-        //static string imagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
-        //static string outputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+        //static string ImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        //static string OutputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
 
-        static (int X, int Y)[] Corners;
+        static (int X, int Y)[] Corners = new (int X, int Y)[4];
+        static (int X, int Y)[] CroppedCorners = new (int X, int Y)[4];
 
         static List<bool> Line = new List<bool>();
+        static int LineSuccessRates = 50;
 
-        static int ColorDistLimit = 5000;
+        static int ColorDistLimit = 21;
         static Color CornerColor = Color.FromArgb(60, 50, 51);
         static void Main(string[] args)
         {
-            //TODO: align the frame
+            //TODO: align the frame: Done
+            //TODO: make sure that the if the corner of the object is slightly above the slope try to shorter the line or lower the line from a certain point
+            //      you maybe can look at all the other lines that been search up and see where the main problem is
 
-            Mat img = CvInvoke.Imread(imagePath, ImreadModes.Color);
+            Mat img = CvInvoke.Imread(ImagePath, ImreadModes.Color);
 
             if (img == null || img.IsEmpty)
             {
@@ -41,7 +45,7 @@ namespace RectangleShape2._0
             }
 
             // Check for EXIF orientation tag and rotate the image if needed
-            //int rotationalCase = RotateImageIfNecessaryForMat(ref img, imagePath);
+            //int rotationalCase = RotateImageIfNecessaryForMat(ref img, ImagePath);
 
             // Convert the image to grayscale
             Mat grayImage = new Mat();
@@ -81,12 +85,12 @@ namespace RectangleShape2._0
             PointF[] cornersPoints = largestRotatedRect.GetVertices();
 
             //// Save the resulting image to the specified output path
-            //CvInvoke.Imwrite(outputImagePath, img);
+            //CvInvoke.Imwrite(OutputImagePath, img);
 
-            ////Console.WriteLine("Processed image saved to: " + outputImagePath);
+            ////Console.WriteLine("Processed image saved to: " + OutputImagePath);
 
             //// Open the image using the default image viewer
-            //Process.Start(outputImagePath);
+            //Process.Start(OutputImagePath);
 
 
             Corners = new (int X, int Y)[4];
@@ -95,7 +99,7 @@ namespace RectangleShape2._0
             {
                 string currentString = cornersPoints[i].ToString();
 
-                Corners[i] = ((int)Math.Round(Double.Parse(currentString.Substring(currentString.IndexOf('=') + 1, currentString.IndexOf(',') - currentString.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(currentString.Substring(currentString.IndexOf('=', currentString.IndexOf('=') + 1) + 1, currentString.IndexOf('}') - currentString.IndexOf('=', currentString.IndexOf('=') + 1) - 1))));
+                Corners[i] = ((int)Math.Floor(Double.Parse(currentString.Substring(currentString.IndexOf('=') + 1, currentString.IndexOf(',') - currentString.IndexOf('=') - 1))), (int)Math.Floor(Double.Parse(currentString.Substring(currentString.IndexOf('=', currentString.IndexOf('=') + 1) + 1, currentString.IndexOf('}') - currentString.IndexOf('=', currentString.IndexOf('=') + 1) - 1))));
             }
 
             SelectionSortBy_Y(Corners);
@@ -175,9 +179,9 @@ namespace RectangleShape2._0
             int width = TopRight.X - TopLeft.X; // Width of the cropped region
             int height = BottomLeft.Y - TopLeft.Y; // Height of the cropped region
 
-            Image image = Image.FromFile(imagePath);
+            Image image = Image.FromFile(ImagePath);
 
-            RotateImageIfNecessaryForMatForImage(ref image, imagePath);
+            RotateImageIfNecessaryForMatForImage(ref image, ImagePath);
 
             Bitmap picture = new Bitmap(image, image.Width, image.Height);
 
@@ -201,14 +205,14 @@ namespace RectangleShape2._0
                 croppedImage.SetPixel(Corners[1].X + i, Corners[1].Y, Color.Red);
 
             for (int i = 0; i < Corners[2].X; i++)// Draw a line from the edge of the image to the edge of the object
-                croppedImage.SetPixel(Corners[2].X + i, Corners[2].Y, Color.Red);
+                croppedImage.SetPixel(Corners[2].X - i, Corners[2].Y, Color.Red);
 
             for (int i = 0; i < croppedImage.Width - Corners[3].X; i++)// Draw a line from the edge of the image to the edge of the object
                 croppedImage.SetPixel(Corners[3].X + i, Corners[3].Y, Color.Red);
 
 
             // Save the cropped image
-            croppedImage.Save(outputImagePath, ImageFormat.Jpeg);
+            croppedImage.Save(OutputImagePath, ImageFormat.Jpeg);
 
             // Dispose of the image objects to free up resources
             croppedImage.Dispose();
@@ -216,7 +220,7 @@ namespace RectangleShape2._0
 
             Console.WriteLine("Image cropped and saved successfully.");
 
-            Process.Start(outputImagePath);
+            Process.Start(OutputImagePath);
         }
         static void FindObjectsCorners(ref Bitmap image)
         {
@@ -240,22 +244,80 @@ namespace RectangleShape2._0
                     Corners[3] = (Corners[3].X - 1, Corners[3].Y - 1);
                 }
             }
+            Array.Copy(Corners, CroppedCorners, Corners.Length);
+
             /*for (int i = 0; i < image.Width - Corners[whichCornerTouches].X; i++)
                 image.SetPixel(Corners[whichCornerTouches].X + i, Corners[whichCornerTouches].Y, Color.Red);*/
 
             Console.WriteLine("\n" + Corners[whichCornerTouches] + "\n");
 
             bool foundCorner = false;
-            for (int i = 0; foundCorner == false; i++)
+            (int X, int Y) secondPoint;
+            for (int i = 0; !foundCorner; i++)
             {// problem cuz of the location of the first dot
-                (int X, int Y) secondPoint = whichCornerTouches - 2 > 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
+                secondPoint = whichCornerTouches - 2 >= 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
 
-                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X -= i, secondPoint.Y), image);
+                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
 
-                if (CountTrueValues(Line) > 90 * Line.Count / 100)
+                if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[whichCornerTouches - 2 > 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
+                    Corners[whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
+                }
+                Line.Clear();
+            }
+            foundCorner = false;
+            whichCornerTouches = whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2;
+
+            for (int i = 0; !foundCorner; i++)
+            {
+                if (whichCornerTouches == 0)
+                    secondPoint = Corners[1];
+
+                else if (whichCornerTouches == 3)
+                    secondPoint = Corners[2];
+
+                else
+                    secondPoint = Corners[whichCornerTouches - 1].Y == Corners[whichCornerTouches].Y ? Corners[whichCornerTouches - 1] : Corners[whichCornerTouches + 1];
+
+                HorizontalLine(Corners[whichCornerTouches], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
+
+                if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
+                {
+                    foundCorner = true;
+
+                    if (whichCornerTouches == 0)
+                        Corners[1] = secondPoint;
+
+                    else if (whichCornerTouches == 3)
+                        Corners[2] = secondPoint;
+
+                    else
+                        Corners[Corners[whichCornerTouches - 1].Y == Corners[whichCornerTouches].Y ? whichCornerTouches - 1 : whichCornerTouches + 1] = secondPoint;
+                }
+                Line.Clear();
+            }
+            foundCorner = false;
+
+            if (whichCornerTouches == 0)
+                whichCornerTouches = 1;
+
+            else if (whichCornerTouches == 3)
+                whichCornerTouches = 2;
+
+            else
+                whichCornerTouches = CroppedCorners[whichCornerTouches - 1].Y == CroppedCorners[whichCornerTouches].Y ? whichCornerTouches - 1 : whichCornerTouches + 1;
+
+            for (int i = 0; !foundCorner; i++)
+            {// problem cuz of the location of the first dot
+                secondPoint = whichCornerTouches - 2 >= 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
+
+                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
+
+                if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
+                {
+                    foundCorner = true;
+                    Corners[whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
                 }
                 Line.Clear();
             }
@@ -330,6 +392,18 @@ namespace RectangleShape2._0
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
+        }
+        public static int FindLastTrueIndex(bool[] array)
+        {
+            for (int i = array.Length - 1; i >= 0; i--)
+            {
+                if (array[i])
+                    return i;
+            }
+
+            // If no 'true' value is found, you can return a default value or throw an exception.
+            // For example, return -1 to indicate that there are no 'true' values in the array.
+            return -1;
         }
         static int CountTrueValues(List<bool> boolList)
         {
@@ -503,11 +577,60 @@ namespace RectangleShape2._0
         }
         static bool ColorDist(Color c1, Color c2)
         {
-            double rDiff = c1.R - c2.R;
-            double gDiff = c1.G - c2.G;
-            double bDiff = c1.B - c2.B;
+            return CalculateCIE76ColorDifference(c1.R, c1.G, c1.B, c2.R, c2.G, c2.B) <= ColorDistLimit;
+        }
+        public static double CalculateCIE76ColorDifference(int r1, int g1, int b1, int r2, int g2, int b2)
+        {
+            // Convert the RGB values to the Lab color space
+            double[] lab1 = RGBToLab(r1, g1, b1);
+            double[] lab2 = RGBToLab(r2, g2, b2);
 
-            return Math.Pow(rDiff, 2) + Math.Pow(gDiff, 2) + Math.Pow(bDiff, 2) <= ColorDistLimit;
+            // Calculate the CIE76 color difference
+            double deltaL = lab1[0] - lab2[0];
+            double deltaa = lab1[1] - lab2[1];
+            double deltab = lab1[2] - lab2[2];
+
+            return Math.Sqrt(deltaL * deltaL + deltaa * deltaa + deltab * deltab);
+        }
+        private static double[] RGBToLab(int R, int G, int B)
+        {
+            // Convert RGB to XYZ color space
+            double rLinear = R / 255.0;
+            double gLinear = G / 255.0;
+            double bLinear = B / 255.0;
+
+            rLinear = (rLinear > 0.04045) ? Math.Pow((rLinear + 0.055) / 1.055, 2.4) : rLinear / 12.92;
+            gLinear = (gLinear > 0.04045) ? Math.Pow((gLinear + 0.055) / 1.055, 2.4) : gLinear / 12.92;
+            bLinear = (bLinear > 0.04045) ? Math.Pow((bLinear + 0.055) / 1.055, 2.4) : bLinear / 12.92;
+
+            double x = rLinear * 0.4124564 + gLinear * 0.3575761 + bLinear * 0.1804375;
+            double y = rLinear * 0.2126729 + gLinear * 0.7151522 + bLinear * 0.0721750;
+            double z = rLinear * 0.0193339 + gLinear * 0.1191920 + bLinear * 0.9503041;
+
+            // Convert XYZ to Lab
+            x /= 0.950456;
+            y /= 1.0;
+            z /= 1.088754;
+
+            x = (x > 0.008856) ? Math.Pow(x, 1.0 / 3.0) : (903.3 * x + 16.0) / 116.0;
+            y = (y > 0.008856) ? Math.Pow(y, 1.0 / 3.0) : (903.3 * y + 16.0) / 116.0;
+            z = (z > 0.008856) ? Math.Pow(z, 1.0 / 3.0) : (903.3 * z + 16.0) / 116.0;
+
+            double L = Math.Max(0, 116.0 * y - 16.0);
+            double a = (x - y) * 500.0;
+            double b = (y - z) * 200.0;
+
+            return new double[] { L, a, b };
+        }
+        static string GetFileName(string File)
+        {
+            return GetFileNameWithExtension(File.Substring(0, File.IndexOf('.')));
+        }
+        static string GetFileNameWithExtension(string File)
+        {
+            int BackSlashIndex = File.LastIndexOf("\\");
+
+            return File.Substring(BackSlashIndex + 1, File.Length - BackSlashIndex - 1);
         }
     }
 }

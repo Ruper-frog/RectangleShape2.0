@@ -252,19 +252,19 @@ namespace RectangleShape2._0
             Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
 
             bool foundCorner = false;
-            (int X, int Y) secondPoint;
+            (int X, int Y) secondPoint, truePoint;
             secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
 
             for (int i = 0; !foundCorner; i++)
             {// problem cuz of the location of the first dot
                 secondPoint = Corners[secondCornerNumber];
 
-                VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
+                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[secondCornerNumber] = secondPoint;
+                    Corners[secondCornerNumber] = truePoint;
                 }
                 Line.Clear();
             }
@@ -278,19 +278,18 @@ namespace RectangleShape2._0
                 secondCornerNumber = 2;
 
             else
-                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == Corners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
+                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == CroppedCorners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
 
             for (int i = 0; !foundCorner; i++)
             {
                 secondPoint = Corners[secondCornerNumber];
 
-                HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-
-                    Corners[secondCornerNumber] = secondPoint;
+                    Corners[secondCornerNumber] = truePoint;
                 }
                 Line.Clear();
             }
@@ -315,7 +314,7 @@ namespace RectangleShape2._0
             foreach ((int X, int Y) i in Corners)
                 Console.WriteLine(i);
         }
-        public static void HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        public static (int X, int Y) HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
         {
             // Determine the start point and end point based on X-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -338,18 +337,24 @@ namespace RectangleShape2._0
             float intercept = startPoint.Y - slope * startPoint.X;
 
             // Iterate through points along the X-axis
-            for (int x = startPoint.X, i = 0; x <= endPoint.X; x++, i++)
+            int y, x;
+            for (x = startPoint.X; x <= endPoint.X; x++)
             {
                 // Calculate the corresponding Y-coordinate using the equation
-                int y = (int)(slope * x + intercept);
+                y = (int)(slope * x + intercept);
 
                 Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
 
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
+            // Get the last true cell in the Line list
+            x -= FindLastTrueIndex(Line) - startPoint.X;
+            y = (int)(slope * x + intercept);
+
+            return (x, y);
         }
-        public static void VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        public static (int X, int Y) VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
         {
             // Determine the start point and end point based on Y-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -372,22 +377,28 @@ namespace RectangleShape2._0
             float intercept = startPoint.X - slope * startPoint.Y;
 
             // Iterate through points along the Y-axis
-            for (int y = startPoint.Y; y <= endPoint.Y; y++)
+            int y, x;
+            for (y = startPoint.Y; y <= endPoint.Y; y++)
             {
                 // Calculate the corresponding X-coordinate using the equation
-                int x = (int)(slope * y + intercept);
+                x = (int)(slope * y + intercept);
 
                 Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
 
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
+            // Get the last true cell in the Line list
+            y -= FindLastTrueIndex(Line) - startPoint.Y;
+            x = (int)(slope * y + intercept);
+
+            return (x, y);
         }
-        public static int FindLastTrueIndex(bool[] array)
+        public static int FindLastTrueIndex(List<bool> list)
         {
-            for (int i = array.Length - 1; i >= 0; i--)
+            for (int i = list.Count() - 1; i >= 0; i--)
             {
-                if (array[i])
+                if (list[i])
                     return i;
             }
 

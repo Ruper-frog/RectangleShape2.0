@@ -3,19 +3,28 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace RectangleShape2._0
 {
     internal class Program
     {
-        static string imagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
-        static string outputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+        //PC
+        static string imagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string outputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
+
+        //Leptop
+        //static string imagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        //static string outputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
 
         static (int X, int Y)[] Corners;
+
+        static List<bool> Line = new List<bool>();
 
         static int ColorDistLimit = 5000;
         static Color CornerColor = Color.FromArgb(60, 50, 51);
@@ -127,11 +136,12 @@ namespace RectangleShape2._0
 
             Corners = Top.Concat(Bottom).ToArray();
 
-            for (int i = 0; i < Top.Length; i++)
-                Console.WriteLine($"{Top[i].X} {Top[i].Y}");
+            AlignRectangleCorners();
 
-            for (int i = 0; i < Bottom.Length; i++)
-                Console.WriteLine($"{Bottom[i].X} {Bottom[i].Y}");
+            for (int i = 0; i < Corners.Length; i++)
+                Console.WriteLine($"{Corners[i].X} {Corners[i].Y}");
+
+            Console.WriteLine();
 
             /*string strTopLeft = cornersPoints[0].ToString();
             string strTopRight = cornersPoints[1].ToString();
@@ -154,10 +164,10 @@ namespace RectangleShape2._0
             int[,] coordinatesArray = StoreCoordinatesInArray(FirstCorner, SecondCorner, ThirdCorner, FourthCorner);*/
 
 
-            (int X, int Y) TopLeft = (Top[0].X, Top[0].Y);
-            (int X, int Y) TopRight = (Top[1].X, Top[1].Y);
-            (int X, int Y) BottomLeft = (Bottom[0].X, Bottom[0].Y);
-            (int X, int Y) BottomRight = (Bottom[1].X, Bottom[1].Y);
+            (int X, int Y) TopLeft = (Corners[0].X, Corners[0].Y);
+            (int X, int Y) TopRight = (Corners[1].X, Corners[1].Y);
+            (int X, int Y) BottomLeft = (Corners[2].X, Corners[2].Y);
+            (int X, int Y) BottomRight = (Corners[3].X, Corners[3].Y);
 
 
             int x = TopLeft.X; // Y-coordinate of the top-left corner
@@ -178,7 +188,24 @@ namespace RectangleShape2._0
             Corners[2] = (0, croppedImage.Height - 1);
             Corners[3] = (croppedImage.Width - 1, croppedImage.Height - 1);
 
+            foreach ((int X, int Y) i in Corners)
+                Console.WriteLine(i);
+
             FindObjectsCorners(ref croppedImage);
+
+
+            for (int i = 0; i < Corners[0].X; i++)// Draw a line from the edge of the image to the edge of the object
+                croppedImage.SetPixel(Corners[0].X + i, Corners[0].Y, Color.Red);
+
+            for (int i = 0; i < croppedImage.Width - Corners[1].X; i++)// Draw a line from the edge of the image to the edge of the object
+                croppedImage.SetPixel(Corners[1].X + i, Corners[1].Y, Color.Red);
+
+            for (int i = 0; i < Corners[2].X; i++)// Draw a line from the edge of the image to the edge of the object
+                croppedImage.SetPixel(Corners[2].X + i, Corners[2].Y, Color.Red);
+
+            for (int i = 0; i < croppedImage.Width - Corners[3].X; i++)// Draw a line from the edge of the image to the edge of the object
+                croppedImage.SetPixel(Corners[3].X + i, Corners[3].Y, Color.Red);
+
 
             // Save the cropped image
             croppedImage.Save(outputImagePath, ImageFormat.Jpeg);
@@ -216,31 +243,100 @@ namespace RectangleShape2._0
             /*for (int i = 0; i < image.Width - Corners[whichCornerTouches].X; i++)
                 image.SetPixel(Corners[whichCornerTouches].X + i, Corners[whichCornerTouches].Y, Color.Red);*/
 
-            Console.WriteLine(Corners[whichCornerTouches]);
+            Console.WriteLine("\n" + Corners[whichCornerTouches] + "\n");
 
             bool foundCorner = false;
             for (int i = 0; foundCorner == false; i++)
-                foundCorner = LinearLine(Corners[whichCornerTouches], whichCornerTouches - 2 > 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2], image); 
+            {// problem cuz of the location of the first dot
+                (int X, int Y) secondPoint = whichCornerTouches - 2 > 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
+
+                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X -= i, secondPoint.Y), image);
+
+                if (CountTrueValues(Line) > 90 * Line.Count / 100)
+                {
+                    foundCorner = true;
+                    Corners[whichCornerTouches - 2 > 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
+                }
+                Line.Clear();
+            }
+
+            foreach ((int X, int Y) i in Corners)
+                Console.WriteLine(i);
         }
-        public static bool LinearLine((int X, int Y) startPoint, (int X, int Y) endPoint, Bitmap image)
+        public static void HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
         {
-            // Calculate the slope (incline) between two points
+            // Determine the start point and end point based on X-coordinates
+            (int X, int Y) startPoint, endPoint;
+
+            if (point1.X < point2.X)
+            {
+                startPoint = point1;
+                endPoint = point2;
+            }
+            else
+            {
+                startPoint = point2;
+                endPoint = point1;
+            }
+
+            // Calculate the slope (incline) between the two points
             float slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
 
             // Generate the mathematical equation of the line (y = mx + b)
             float intercept = startPoint.Y - slope * startPoint.X;
 
             // Iterate through points along the X-axis
-            for (int x = startPoint.X; x <= endPoint.X; x++)
+            for (int x = startPoint.X, i = 0; x <= endPoint.X; x++, i++)
             {
                 // Calculate the corresponding Y-coordinate using the equation
                 int y = (int)(slope * x + intercept);
 
-                image.GetPixel(x, y);
+                Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
 
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
+        }
+        public static void VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        {
+            // Determine the start point and end point based on Y-coordinates
+            (int X, int Y) startPoint, endPoint;
+
+            if (point1.Y < point2.Y)
+            {
+                startPoint = point1;
+                endPoint = point2;
+            }
+            else
+            {
+                startPoint = point2;
+                endPoint = point1;
+            }
+
+            // Calculate the slope (incline) between the two points
+            float slope = (float)(endPoint.X - startPoint.X) / (endPoint.Y - startPoint.Y);
+
+            // Generate the mathematical equation of the line (x = my + b)
+            float intercept = startPoint.X - slope * startPoint.Y;
+
+            // Iterate through points along the Y-axis
+            for (int y = startPoint.Y; y <= endPoint.Y; y++)
+            {
+                // Calculate the corresponding X-coordinate using the equation
+                int x = (int)(slope * y + intercept);
+
+                Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
+
+                // Set the pixel color to draw the line
+                //image.SetPixel(x, y, Color.Red);
+            }
+        }
+        static int CountTrueValues(List<bool> boolList)
+        {
+            // Use the Count method with a lambda expression to count true values
+            int count = boolList.Count(b => b == true); // You can also use b == true or simply b
+
+            return count;
         }
         static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
         {
@@ -358,6 +454,29 @@ namespace RectangleShape2._0
                 arr[i] = arr[minIndex];
                 arr[minIndex] = temp;
             }
+        }
+        public static void AlignRectangleCorners()
+        {
+            int minX = int.MaxValue;
+            int minY = int.MaxValue;
+            int maxX = int.MinValue;
+            int maxY = int.MinValue;
+
+            // Find the minimum and maximum X and Y coordinates among the corners
+            foreach ((int X, int Y) corner in Corners)
+            {
+                minX = Math.Min(minX, corner.X);
+                minY = Math.Min(minY, corner.Y);
+                maxX = Math.Max(maxX, corner.X);
+                maxY = Math.Max(maxY, corner.Y);
+            }
+
+            // Create a new array of aligned corners
+            (int X, int Y)[] alignedCorners = new (int X, int Y)[4];
+            Corners[0] = (minX, minY);
+            Corners[1] = (maxX, minY);
+            Corners[2] = (minX, maxY);
+            Corners[3] = (maxX, maxY);
         }
         // Function to crop an image based on an array of PointF coordinates
         static Bitmap CropImage(Bitmap image, int x, int y, int width, int height)

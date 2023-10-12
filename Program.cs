@@ -224,19 +224,19 @@ namespace RectangleShape2._0
         }
         static void FindObjectsCorners(ref Bitmap image)
         {
-            int whichCornerTouches = -1;
+            int whichCornerTouchesFirst = -1, secondCornerNumber;
 
-            while (whichCornerTouches == -1)
+            while (whichCornerTouchesFirst == -1)
             {
                 for (int i = 0; i < Corners.Length; i++)
                 {
                     if (ColorDist(image.GetPixel(Corners[i].X, Corners[i].Y), CornerColor))
                     {
-                        whichCornerTouches = i;
+                        whichCornerTouchesFirst = i;
                         break;
                     }
                 }
-                if (whichCornerTouches == -1)
+                if (whichCornerTouchesFirst == -1)
                 {
                     Corners[0] = (Corners[0].X + 1, Corners[0].Y + 1);
                     Corners[1] = (Corners[1].X - 1, Corners[1].Y + 1);
@@ -246,78 +246,68 @@ namespace RectangleShape2._0
             }
             Array.Copy(Corners, CroppedCorners, Corners.Length);
 
-            /*for (int i = 0; i < image.Width - Corners[whichCornerTouches].X; i++)
-                image.SetPixel(Corners[whichCornerTouches].X + i, Corners[whichCornerTouches].Y, Color.Red);*/
+            /*for (int i = 0; i < image.Width - Corners[whichCornerTouchesFirst].X; i++)
+                image.SetPixel(Corners[whichCornerTouchesFirst].X + i, Corners[whichCornerTouchesFirst].Y, Color.Red);*/
 
-            Console.WriteLine("\n" + Corners[whichCornerTouches] + "\n");
+            Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
 
             bool foundCorner = false;
             (int X, int Y) secondPoint;
+            secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
+
             for (int i = 0; !foundCorner; i++)
             {// problem cuz of the location of the first dot
-                secondPoint = whichCornerTouches - 2 >= 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
+                secondPoint = Corners[secondCornerNumber];
 
-                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
+                VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
+                    Corners[secondCornerNumber] = secondPoint;
                 }
                 Line.Clear();
             }
             foundCorner = false;
-            whichCornerTouches = whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2;
+            whichCornerTouchesFirst = secondCornerNumber;
+
+            if (whichCornerTouchesFirst == 0)
+                secondCornerNumber = 1;
+
+            else if (whichCornerTouchesFirst == 3)
+                secondCornerNumber = 2;
+
+            else
+                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == Corners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
 
             for (int i = 0; !foundCorner; i++)
             {
-                if (whichCornerTouches == 0)
-                    secondPoint = Corners[1];
+                secondPoint = Corners[secondCornerNumber];
 
-                else if (whichCornerTouches == 3)
-                    secondPoint = Corners[2];
-
-                else
-                    secondPoint = Corners[whichCornerTouches - 1].Y == Corners[whichCornerTouches].Y ? Corners[whichCornerTouches - 1] : Corners[whichCornerTouches + 1];
-
-                HorizontalLine(Corners[whichCornerTouches], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
+                HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
 
-                    if (whichCornerTouches == 0)
-                        Corners[1] = secondPoint;
-
-                    else if (whichCornerTouches == 3)
-                        Corners[2] = secondPoint;
-
-                    else
-                        Corners[Corners[whichCornerTouches - 1].Y == Corners[whichCornerTouches].Y ? whichCornerTouches - 1 : whichCornerTouches + 1] = secondPoint;
+                    Corners[secondCornerNumber] = secondPoint;
                 }
                 Line.Clear();
             }
             foundCorner = false;
-
-            if (whichCornerTouches == 0)
-                whichCornerTouches = 1;
-
-            else if (whichCornerTouches == 3)
-                whichCornerTouches = 2;
-
-            else
-                whichCornerTouches = CroppedCorners[whichCornerTouches - 1].Y == CroppedCorners[whichCornerTouches].Y ? whichCornerTouches - 1 : whichCornerTouches + 1;
+            whichCornerTouchesFirst = secondCornerNumber;
+            secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
 
             for (int i = 0; !foundCorner; i++)
             {// problem cuz of the location of the first dot
-                secondPoint = whichCornerTouches - 2 >= 0 ? Corners[whichCornerTouches - 2] : Corners[whichCornerTouches + 2];
+                secondPoint = Corners[secondCornerNumber];
 
-                VerticalLine(Corners[whichCornerTouches], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
+                VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[whichCornerTouches - 2 >= 0 ? whichCornerTouches - 2 : whichCornerTouches + 2] = secondPoint;
+                    Corners[secondCornerNumber] = secondPoint;
                 }
                 Line.Clear();
             }

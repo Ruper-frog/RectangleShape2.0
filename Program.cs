@@ -14,7 +14,7 @@ namespace RectangleShape2._0
     internal class Program
     {
         //PC
-        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
         static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
         static string PerspectiveTransformationPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
 
@@ -24,8 +24,6 @@ namespace RectangleShape2._0
 
         static (int X, int Y)[] Corners = new (int X, int Y)[4];
         static (int X, int Y)[] CroppedCorners = new (int X, int Y)[4];
-
-        static float[] Slopes = new float[4];
 
         static List<bool> Line = new List<bool>();
         static int LineSuccessRates = 70;
@@ -199,9 +197,6 @@ namespace RectangleShape2._0
             }
             Array.Copy(Corners, CroppedCorners, Corners.Length);
 
-            /*for (int i = 0; i < image.Width - Corners[whichCornerTouchesFirst].X; i++)
-                image.SetPixel(Corners[whichCornerTouchesFirst].X + i, Corners[whichCornerTouchesFirst].Y, Color.Red);*/
-
             Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
 
             bool foundCorner = false;
@@ -212,7 +207,7 @@ namespace RectangleShape2._0
             {// problem cuz of the location of the first dot
                 secondPoint = Corners[secondCornerNumber];
 
-                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
+                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
@@ -237,7 +232,7 @@ namespace RectangleShape2._0
             {
                 secondPoint = Corners[secondCornerNumber];
 
-                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, ref Slopes[secondCornerNumber]);
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
@@ -247,33 +242,22 @@ namespace RectangleShape2._0
                 Line.Clear();
             }
             foundCorner = false;
-            whichCornerTouchesFirst = secondCornerNumber;
-            secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
+            whichCornerTouchesFirst = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
 
-            if (Slopes[whichCornerTouchesFirst] > 0)
-            {
-                for (int i = 0; !foundCorner; i++)
-                {// problem cuz of the location of the first dot
-                    secondPoint = Corners[secondCornerNumber];
+            if (whichCornerTouchesFirst == 0)
+                secondCornerNumber = 1;
 
-                    truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
+            else if (whichCornerTouchesFirst == 3)
+                secondCornerNumber = 2;
 
-                    if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
-                    {
-                        foundCorner = true;
-                        Corners[secondCornerNumber] = truePoint;
-                    }
-                    Line.Clear();
-                }
-            }
-
-            whichCornerTouchesFirst = whichCornerTouchesFirst == 0 ? 3 : 0;
+            else
+                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == CroppedCorners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
 
             for (int i = 0; !foundCorner; i++)
             {
                 secondPoint = Corners[secondCornerNumber];
 
-                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, ref Slopes[secondCornerNumber]);
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
@@ -286,7 +270,7 @@ namespace RectangleShape2._0
             foreach ((int X, int Y) i in Corners)
                 Console.WriteLine(i);
         }
-        public static (int X, int Y) HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, ref float slope)
+        public static (int X, int Y) HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, int whichCornerTouchesFirst)
         {
             // Determine the start point and end point based on X-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -301,9 +285,10 @@ namespace RectangleShape2._0
                 startPoint = point2;
                 endPoint = point1;
             }
+            bool startPointIsFirstCorner = Corners[whichCornerTouchesFirst] == startPoint;
 
             // Calculate the slope (incline) between the two points
-            slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
+            float slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
 
             // Generate the mathematical equation of the line (y = mx + b)
             float intercept = startPoint.Y - slope * startPoint.X;
@@ -320,14 +305,18 @@ namespace RectangleShape2._0
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
-            // Get the last true cell in the Line list
-            x = startPoint.X;
-            x += FindFirstTrueIndex(Line);
+            if (startPointIsFirstCorner)
+                x -= Line.Count() - FindLastTrueIndex(Line);
+            else
+            {
+                x = startPoint.X;
+                x += FindFirstTrueIndex(Line);
+            }
             y = (int)(slope * x + intercept);
 
             return (x, y);
         }
-        public static (int X, int Y) VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        public static (int X, int Y) VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, int whichCornerTouchesFirst)
         {
             // Determine the start point and end point based on Y-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -342,6 +331,7 @@ namespace RectangleShape2._0
                 startPoint = point2;
                 endPoint = point1;
             }
+            bool startPointIsFirstCorner = Corners[whichCornerTouchesFirst] == startPoint;
 
             // Calculate the slope (incline) between the two points
             float slope = (float)(endPoint.X - startPoint.X) / (endPoint.Y - startPoint.Y);
@@ -361,8 +351,13 @@ namespace RectangleShape2._0
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
-            // Get the last true cell in the Line list
-            y -= FindLastTrueIndex(Line) - startPoint.Y * 2;
+            if (startPointIsFirstCorner)
+                y -= Line.Count() - FindLastTrueIndex(Line);
+            else
+            {
+                y = startPoint.Y;
+                y += FindFirstTrueIndex(Line);
+            }
             x = (int)(slope * y + intercept);
 
             return (x, y);

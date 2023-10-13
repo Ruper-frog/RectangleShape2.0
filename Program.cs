@@ -372,7 +372,8 @@ namespace RectangleShape2._0
                 //image.SetPixel(x, y, Color.Red);
             }
             // Get the last true cell in the Line list
-            x -= FindFirstTrueIndex(Line) - startPoint.X;
+            x = startPoint.X;
+            x += FindFirstTrueIndex(Line);
             y = (int)(slope * x + intercept);
 
             return (x, y);

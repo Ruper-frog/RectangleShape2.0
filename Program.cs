@@ -17,6 +17,7 @@ namespace RectangleShape2._0
         //PC
         static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
         static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
+        static string PerspectiveTransformationPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
 
         //Leptop
         //static string ImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
@@ -212,17 +213,22 @@ namespace RectangleShape2._0
             for (int i = 0; i < croppedImage.Width - Corners[3].X; i++)// Draw a line from the edge of the image to the edge of the object
                 croppedImage.SetPixel(Corners[3].X + i, Corners[3].Y, Color.Red);
 
-
             // Save the cropped image
             croppedImage.Save(OutputImagePath, ImageFormat.Jpeg);
+
+            Mat transformedImage = PerformPerspectiveTransformation(OutputImagePath, croppedImage,  Corners);
+
+            CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
 
             // Dispose of the image objects to free up resources
             croppedImage.Dispose();
             img.Dispose();
+            transformedImage.Dispose();
 
             Console.WriteLine("Image cropped and saved successfully.");
 
-            Process.Start(OutputImagePath);
+            //Process.Start(OutputImagePath);
+            Process.Start(PerspectiveTransformationPath);
         }
         static void FindObjectsCorners(ref Bitmap image)
         {
@@ -449,6 +455,43 @@ namespace RectangleShape2._0
 
             return count;
         }
+
+        static Mat PerformPerspectiveTransformation(string imageFilePath, Bitmap image, (int X, int Y)[] points)
+        {
+            using (Mat img = CvInvoke.Imread(imageFilePath))
+            {
+                if (img != null && points.Length == 4)
+                {
+                    PointF[] pts1 = new PointF[4];
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        pts1[i] = new PointF(points[i].X, points[i].Y);
+                    }
+
+                    PointF[] pts2 = new PointF[]
+                    {
+                    new PointF(0, 0),
+                    new PointF(image.Width - 1, 0),
+                    new PointF(0, image.Height - 1),
+                    new PointF(image.Width - 1, image.Height - 1)
+                    };
+
+                    using (Mat M = CvInvoke.GetPerspectiveTransform(pts1, pts2))
+                    {
+                        Mat dst = new Mat();
+                        CvInvoke.WarpPerspective(img, dst, M, new Size(image.Width, image.Height));
+
+                        return dst;
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
         static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
         {
             int rotationalCase = -1;

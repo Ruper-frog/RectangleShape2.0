@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace RectangleShape2._0
 {
@@ -113,34 +112,6 @@ namespace RectangleShape2._0
             (int X, int Y)[] Bottom = { Corners[2], Corners[3] };
             SelectionSortBy_X(Bottom);
 
-            (int X, int Y) corner, corner1;
-
-            /*switch (rotationalCase)
-            {
-                case 1:
-                    {
-                        corner = Top[1];
-                        Top[1] = Top[0];
-                        corner1 = Bottom[1];
-                        Bottom[1] = corner;
-                        corner = Bottom[0];
-                        Bottom[0] = corner1;
-                        Top[0] = corner;
-                    }
-                    break;
-                case 2:
-                    {
-                        corner = Top[0];
-                        Top[0] = Top[1];
-                        corner1 = Bottom[0];
-                        Bottom[0] = corner;
-                        corner = Bottom[1];
-                        Bottom[1] = corner1;
-                        Top[1] = corner;
-                    }
-                    break;
-            }*/
-
             Corners = Top.Concat(Bottom).ToArray();
 
             AlignRectangleCorners();
@@ -150,37 +121,10 @@ namespace RectangleShape2._0
 
             Console.WriteLine();
 
-            /*string strTopLeft = cornersPoints[0].ToString();
-            string strTopRight = cornersPoints[1].ToString();
-            string strBottomLeft = cornersPoints[2].ToString();
-            string strBottomRight = cornersPoints[3].ToString();
-
-            string CurrnetStr = strTopLeft;
-            //(int Y, int Y) FirstCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strTopRight;
-            //(int Y, int Y) SecondCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strBottomLeft;
-            //(int Y, int Y) ThirdCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strBottomRight;
-            //(int Y, int Y) FourthCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-
-            int[,] coordinatesArray = StoreCoordinatesInArray(FirstCorner, SecondCorner, ThirdCorner, FourthCorner);*/
-
-
-            (int X, int Y) TopLeft = (Corners[0].X, Corners[0].Y);
-            (int X, int Y) TopRight = (Corners[1].X, Corners[1].Y);
-            (int X, int Y) BottomLeft = (Corners[2].X, Corners[2].Y);
-            (int X, int Y) BottomRight = (Corners[3].X, Corners[3].Y);
-
-
-            int x = TopLeft.X; // Y-coordinate of the top-left corner
-            int y = TopLeft.Y; // Y-coordinate of the top-left corner
-            int width = TopRight.X - TopLeft.X; // Width of the cropped region
-            int height = BottomLeft.Y - TopLeft.Y; // Height of the cropped region
+            int x = Corners[0].X; // Y-coordinate of the top-left corner
+            int y = Corners[0].Y; // Y-coordinate of the top-left corner
+            int width = Corners[1].X - Corners[0].X; // Width of the cropped region
+            int height = Corners[2].Y - Corners[0].Y; // Height of the cropped region
 
             Image image = Image.FromFile(ImagePath);
 
@@ -213,10 +157,11 @@ namespace RectangleShape2._0
             for (int i = 0; i < croppedImage.Width - Corners[3].X; i++)// Draw a line from the edge of the image to the edge of the object
                 croppedImage.SetPixel(Corners[3].X + i, Corners[3].Y, Color.Red);
 
+
             // Save the cropped image
             croppedImage.Save(OutputImagePath, ImageFormat.Jpeg);
 
-            Mat transformedImage = PerformPerspectiveTransformation(OutputImagePath, croppedImage,  Corners);
+            Mat transformedImage = PerformPerspectiveTransformation(OutputImagePath, croppedImage, Corners);
 
             CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
 
@@ -267,7 +212,7 @@ namespace RectangleShape2._0
             {// problem cuz of the location of the first dot
                 secondPoint = Corners[secondCornerNumber];
 
-                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
+                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
@@ -319,25 +264,23 @@ namespace RectangleShape2._0
                         Corners[secondCornerNumber] = truePoint;
                     }
                     Line.Clear();
-                } 
-            }
-            else
-            {
-                whichCornerTouchesFirst = whichCornerTouchesFirst == 0 ? 3 : 0;
-
-                for (int i = 0; !foundCorner; i++)
-                {
-                    secondPoint = Corners[secondCornerNumber];
-
-                    truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, ref Slopes[secondCornerNumber]);
-
-                    if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
-                    {
-                        foundCorner = true;
-                        Corners[secondCornerNumber] = truePoint;
-                    }
-                    Line.Clear();
                 }
+            }
+
+            whichCornerTouchesFirst = whichCornerTouchesFirst == 0 ? 3 : 0;
+
+            for (int i = 0; !foundCorner; i++)
+            {
+                secondPoint = Corners[secondCornerNumber];
+
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, ref Slopes[secondCornerNumber]);
+
+                if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
+                {
+                    foundCorner = true;
+                    Corners[secondCornerNumber] = truePoint;
+                }
+                Line.Clear();
             }
 
             foreach ((int X, int Y) i in Corners)

@@ -372,7 +372,7 @@ namespace RectangleShape2._0
                 //image.SetPixel(x, y, Color.Red);
             }
             // Get the last true cell in the Line list
-            x -= FindLastTrueIndex(Line) - startPoint.X * 2;
+            x -= FindFirstTrueIndex(Line) - startPoint.X;
             y = (int)(slope * x + intercept);
 
             return (x, y);
@@ -431,7 +431,7 @@ namespace RectangleShape2._0
         }
         public static int FindFirstTrueIndex(List<bool> list)
         {
-            for (int i = 0; i > list.Count(); i++)
+            for (int i = 0; i < list.Count(); i++)
             {
                 if (list[i])
                     return i;

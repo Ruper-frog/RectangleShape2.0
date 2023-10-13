@@ -8,15 +8,15 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace RectangleShape2._0
 {
     internal class Program
     {
         //PC
-        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
         static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
+        static string PerspectiveTransformationPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
 
         //Leptop
         //static string ImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
@@ -26,7 +26,7 @@ namespace RectangleShape2._0
         static (int X, int Y)[] CroppedCorners = new (int X, int Y)[4];
 
         static List<bool> Line = new List<bool>();
-        static int LineSuccessRates = 50;
+        static int LineSuccessRates = 70;
 
         static int ColorDistLimit = 21;
         static Color CornerColor = Color.FromArgb(60, 50, 51);
@@ -110,34 +110,6 @@ namespace RectangleShape2._0
             (int X, int Y)[] Bottom = { Corners[2], Corners[3] };
             SelectionSortBy_X(Bottom);
 
-            (int X, int Y) corner, corner1;
-
-            /*switch (rotationalCase)
-            {
-                case 1:
-                    {
-                        corner = Top[1];
-                        Top[1] = Top[0];
-                        corner1 = Bottom[1];
-                        Bottom[1] = corner;
-                        corner = Bottom[0];
-                        Bottom[0] = corner1;
-                        Top[0] = corner;
-                    }
-                    break;
-                case 2:
-                    {
-                        corner = Top[0];
-                        Top[0] = Top[1];
-                        corner1 = Bottom[0];
-                        Bottom[0] = corner;
-                        corner = Bottom[1];
-                        Bottom[1] = corner1;
-                        Top[1] = corner;
-                    }
-                    break;
-            }*/
-
             Corners = Top.Concat(Bottom).ToArray();
 
             AlignRectangleCorners();
@@ -147,37 +119,10 @@ namespace RectangleShape2._0
 
             Console.WriteLine();
 
-            /*string strTopLeft = cornersPoints[0].ToString();
-            string strTopRight = cornersPoints[1].ToString();
-            string strBottomLeft = cornersPoints[2].ToString();
-            string strBottomRight = cornersPoints[3].ToString();
-
-            string CurrnetStr = strTopLeft;
-            //(int Y, int Y) FirstCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strTopRight;
-            //(int Y, int Y) SecondCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strBottomLeft;
-            //(int Y, int Y) ThirdCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-            //CurrnetStr = strBottomRight;
-            //(int Y, int Y) FourthCorner = ((int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=') + 1, CurrnetStr.IndexOf(',') - CurrnetStr.IndexOf('=') - 1))), (int)Math.Round(Double.Parse(CurrnetStr.Substring(CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) + 1, CurrnetStr.IndexOf('}') - CurrnetStr.IndexOf('=', CurrnetStr.IndexOf('=') + 1) - 1))));
-
-
-            int[,] coordinatesArray = StoreCoordinatesInArray(FirstCorner, SecondCorner, ThirdCorner, FourthCorner);*/
-
-
-            (int X, int Y) TopLeft = (Corners[0].X, Corners[0].Y);
-            (int X, int Y) TopRight = (Corners[1].X, Corners[1].Y);
-            (int X, int Y) BottomLeft = (Corners[2].X, Corners[2].Y);
-            (int X, int Y) BottomRight = (Corners[3].X, Corners[3].Y);
-
-
-            int x = TopLeft.X; // Y-coordinate of the top-left corner
-            int y = TopLeft.Y; // Y-coordinate of the top-left corner
-            int width = TopRight.X - TopLeft.X; // Width of the cropped region
-            int height = BottomLeft.Y - TopLeft.Y; // Height of the cropped region
+            int x = Corners[0].X; // Y-coordinate of the top-left corner
+            int y = Corners[0].Y; // Y-coordinate of the top-left corner
+            int width = Corners[1].X - Corners[0].X; // Width of the cropped region
+            int height = Corners[2].Y - Corners[0].Y; // Height of the cropped region
 
             Image image = Image.FromFile(ImagePath);
 
@@ -214,13 +159,19 @@ namespace RectangleShape2._0
             // Save the cropped image
             croppedImage.Save(OutputImagePath, ImageFormat.Jpeg);
 
+            Mat transformedImage = PerformPerspectiveTransformation(OutputImagePath, croppedImage, Corners);
+
+            CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
+
             // Dispose of the image objects to free up resources
             croppedImage.Dispose();
             img.Dispose();
+            transformedImage.Dispose();
 
             Console.WriteLine("Image cropped and saved successfully.");
 
-            Process.Start(OutputImagePath);
+            //Process.Start(OutputImagePath);
+            Process.Start(PerspectiveTransformationPath);
         }
         static void FindObjectsCorners(ref Bitmap image)
         {
@@ -246,25 +197,22 @@ namespace RectangleShape2._0
             }
             Array.Copy(Corners, CroppedCorners, Corners.Length);
 
-            /*for (int i = 0; i < image.Width - Corners[whichCornerTouchesFirst].X; i++)
-                image.SetPixel(Corners[whichCornerTouchesFirst].X + i, Corners[whichCornerTouchesFirst].Y, Color.Red);*/
-
             Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
 
             bool foundCorner = false;
-            (int X, int Y) secondPoint;
+            (int X, int Y) secondPoint, truePoint;
             secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
 
             for (int i = 0; !foundCorner; i++)
             {// problem cuz of the location of the first dot
                 secondPoint = Corners[secondCornerNumber];
 
-                VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i: secondPoint.X += i, secondPoint.Y), image);
+                truePoint = VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[secondCornerNumber] = secondPoint;
+                    Corners[secondCornerNumber] = truePoint;
                 }
                 Line.Clear();
             }
@@ -278,36 +226,43 @@ namespace RectangleShape2._0
                 secondCornerNumber = 2;
 
             else
-                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == Corners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
+                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == CroppedCorners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
 
             for (int i = 0; !foundCorner; i++)
             {
                 secondPoint = Corners[secondCornerNumber];
 
-                HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image);
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-
-                    Corners[secondCornerNumber] = secondPoint;
+                    Corners[secondCornerNumber] = truePoint;
                 }
                 Line.Clear();
             }
             foundCorner = false;
-            whichCornerTouchesFirst = secondCornerNumber;
-            secondCornerNumber = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
+            whichCornerTouchesFirst = whichCornerTouchesFirst - 2 >= 0 ? whichCornerTouchesFirst - 2 : whichCornerTouchesFirst + 2;
+
+            if (whichCornerTouchesFirst == 0)
+                secondCornerNumber = 1;
+
+            else if (whichCornerTouchesFirst == 3)
+                secondCornerNumber = 2;
+
+            else
+                secondCornerNumber = Corners[whichCornerTouchesFirst - 1].Y == CroppedCorners[whichCornerTouchesFirst].Y ? whichCornerTouchesFirst - 1 : whichCornerTouchesFirst + 1;
 
             for (int i = 0; !foundCorner; i++)
-            {// problem cuz of the location of the first dot
+            {
                 secondPoint = Corners[secondCornerNumber];
 
-                VerticalLine(Corners[whichCornerTouchesFirst], (secondPoint.X > image.Width / 2 ? secondPoint.X -= i : secondPoint.X += i, secondPoint.Y), image);
+                truePoint = HorizontalLine(Corners[whichCornerTouchesFirst], (secondPoint.X, secondPoint.Y > image.Height / 2 ? secondPoint.Y -= i : secondPoint.Y += i), image, whichCornerTouchesFirst);
 
                 if (CountTrueValues(Line) >= LineSuccessRates * Line.Count / 100)
                 {
                     foundCorner = true;
-                    Corners[secondCornerNumber] = secondPoint;
+                    Corners[secondCornerNumber] = truePoint;
                 }
                 Line.Clear();
             }
@@ -315,7 +270,7 @@ namespace RectangleShape2._0
             foreach ((int X, int Y) i in Corners)
                 Console.WriteLine(i);
         }
-        public static void HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        public static (int X, int Y) HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, int whichCornerTouchesFirst)
         {
             // Determine the start point and end point based on X-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -330,6 +285,7 @@ namespace RectangleShape2._0
                 startPoint = point2;
                 endPoint = point1;
             }
+            bool startPointIsFirstCorner = Corners[whichCornerTouchesFirst] == startPoint;
 
             // Calculate the slope (incline) between the two points
             float slope = (float)(endPoint.Y - startPoint.Y) / (endPoint.X - startPoint.X);
@@ -338,18 +294,29 @@ namespace RectangleShape2._0
             float intercept = startPoint.Y - slope * startPoint.X;
 
             // Iterate through points along the X-axis
-            for (int x = startPoint.X, i = 0; x <= endPoint.X; x++, i++)
+            int y, x;
+            for (x = startPoint.X; x <= endPoint.X; x++)
             {
                 // Calculate the corresponding Y-coordinate using the equation
-                int y = (int)(slope * x + intercept);
+                y = (int)(slope * x + intercept);
 
                 Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
 
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
+            if (startPointIsFirstCorner)
+                x -= Line.Count() - FindLastTrueIndex(Line);
+            else
+            {
+                x = startPoint.X;
+                x += FindFirstTrueIndex(Line);
+            }
+            y = (int)(slope * x + intercept);
+
+            return (x, y);
         }
-        public static void VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image)
+        public static (int X, int Y) VerticalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, int whichCornerTouchesFirst)
         {
             // Determine the start point and end point based on Y-coordinates
             (int X, int Y) startPoint, endPoint;
@@ -364,6 +331,7 @@ namespace RectangleShape2._0
                 startPoint = point2;
                 endPoint = point1;
             }
+            bool startPointIsFirstCorner = Corners[whichCornerTouchesFirst] == startPoint;
 
             // Calculate the slope (incline) between the two points
             float slope = (float)(endPoint.X - startPoint.X) / (endPoint.Y - startPoint.Y);
@@ -372,22 +340,45 @@ namespace RectangleShape2._0
             float intercept = startPoint.X - slope * startPoint.Y;
 
             // Iterate through points along the Y-axis
-            for (int y = startPoint.Y; y <= endPoint.Y; y++)
+            int y, x;
+            for (y = startPoint.Y; y <= endPoint.Y; y++)
             {
                 // Calculate the corresponding X-coordinate using the equation
-                int x = (int)(slope * y + intercept);
+                x = (int)(slope * y + intercept);
 
                 Line.Add(ColorDist(image.GetPixel(x, y), CornerColor));
 
                 // Set the pixel color to draw the line
                 //image.SetPixel(x, y, Color.Red);
             }
-        }
-        public static int FindLastTrueIndex(bool[] array)
-        {
-            for (int i = array.Length - 1; i >= 0; i--)
+            if (startPointIsFirstCorner)
+                y -= Line.Count() - FindLastTrueIndex(Line);
+            else
             {
-                if (array[i])
+                y = startPoint.Y;
+                y += FindFirstTrueIndex(Line);
+            }
+            x = (int)(slope * y + intercept);
+
+            return (x, y);
+        }
+        public static int FindLastTrueIndex(List<bool> list)
+        {
+            for (int i = list.Count() - 1; i >= 0; i--)
+            {
+                if (list[i])
+                    return i;
+            }
+
+            // If no 'true' value is found, you can return a default value or throw an exception.
+            // For example, return -1 to indicate that there are no 'true' values in the array.
+            return -1;
+        }
+        public static int FindFirstTrueIndex(List<bool> list)
+        {
+            for (int i = 0; i < list.Count(); i++)
+            {
+                if (list[i])
                     return i;
             }
 
@@ -402,6 +393,43 @@ namespace RectangleShape2._0
 
             return count;
         }
+
+        static Mat PerformPerspectiveTransformation(string imageFilePath, Bitmap image, (int X, int Y)[] points)
+        {
+            using (Mat img = CvInvoke.Imread(imageFilePath))
+            {
+                if (img != null && points.Length == 4)
+                {
+                    PointF[] pts1 = new PointF[4];
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        pts1[i] = new PointF(points[i].X, points[i].Y);
+                    }
+
+                    PointF[] pts2 = new PointF[]
+                    {
+                    new PointF(0, 0),
+                    new PointF(image.Width - 1, 0),
+                    new PointF(0, image.Height - 1),
+                    new PointF(image.Width - 1, image.Height - 1)
+                    };
+
+                    using (Mat M = CvInvoke.GetPerspectiveTransform(pts1, pts2))
+                    {
+                        Mat dst = new Mat();
+                        CvInvoke.WarpPerspective(img, dst, M, new Size(image.Width, image.Height));
+
+                        return dst;
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
         static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
         {
             int rotationalCase = -1;

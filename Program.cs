@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace RectangleShape2._0
 {
@@ -17,19 +18,30 @@ namespace RectangleShape2._0
         static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
         static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
         static string PerspectiveTransformationPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
+        static string PerspectiveTransformationWithGridPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
 
         //Leptop
         //static string ImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\2.jpg";
         //static string OutputImagePath = @"C:\Users\ruper\OneDrive\שולחן העבודה\Name list images\New folder\output.jpg";
 
+        static bool[,] PhoneNetwork;
+        static int NumPerPocketColumn;
+        static int NumPerPocketRow;
+
         static (int X, int Y)[] Corners = new (int X, int Y)[4];
         static (int X, int Y)[] CroppedCorners = new (int X, int Y)[4];
+
+        static (double Width, double Height) PocketTable = (65.9892, 93.4974);
+        static (double Width, double Height) SinglePocket = (10.0076, 12.0142);
+        static double ImageToRealRatio;
 
         static List<bool> Line = new List<bool>();
         static int LineSuccessRates = 70;
 
         static int ColorDistLimit = 21;
         static Color CornerColor = Color.FromArgb(60, 50, 51);
+        static Color NumberColor = Color.FromArgb(233, 230, 237);
+        static Color BackgroundPocketColor = Color.FromArgb(236, 186, 27);
         static void Main(string[] args)
         {
             //TODO: align the frame: Done
@@ -114,10 +126,9 @@ namespace RectangleShape2._0
 
             AlignRectangleCorners();
 
-            for (int i = 0; i < Corners.Length; i++)
-                Console.WriteLine($"{Corners[i].X} {Corners[i].Y}");
-
-            Console.WriteLine();
+            /*for (int i = 0; i < Corners.Length; i++)
+            //    Console.WriteLine($"{Corners[i].X} {Corners[i].Y}");
+            //Console.WriteLine();*/
 
             int x = Corners[0].X; // Y-coordinate of the top-left corner
             int y = Corners[0].Y; // Y-coordinate of the top-left corner
@@ -129,6 +140,7 @@ namespace RectangleShape2._0
             RotateImageIfNecessaryForMatForImage(ref image, ImagePath);
 
             Bitmap picture = new Bitmap(image, image.Width, image.Height);
+            image.Dispose();
 
             Bitmap croppedImage = CropImage(picture, x, y, width, height);
 
@@ -137,8 +149,8 @@ namespace RectangleShape2._0
             Corners[2] = (0, croppedImage.Height - 1);
             Corners[3] = (croppedImage.Width - 1, croppedImage.Height - 1);
 
-            foreach ((int X, int Y) i in Corners)
-                Console.WriteLine(i);
+            /*foreach ((int X, int Y) i in Corners)
+            //    Console.WriteLine(i);*/
 
             FindObjectsCorners(ref croppedImage);
 
@@ -164,14 +176,144 @@ namespace RectangleShape2._0
             CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
 
             // Dispose of the image objects to free up resources
-            croppedImage.Dispose();
             img.Dispose();
+            croppedImage.Dispose();
             transformedImage.Dispose();
+
+            Bitmap imageWithGrids = new Bitmap(PerspectiveTransformationPath);
+
+            ImageToRealRatio = imageWithGrids.Width / PocketTable.Width;
+            (int Width, int Height) SinglePocketImageSize = ((int)(ImageToRealRatio * SinglePocket.Width), (int)(ImageToRealRatio * SinglePocket.Height));
+
+            NumPerPocketColumn = imageWithGrids.Width / SinglePocketImageSize.Width;
+            NumPerPocketRow = CountNumber(ref imageWithGrids, SinglePocketImageSize);
+
+            PhoneNetwork = CountPhones(ref imageWithGrids, SinglePocketImageSize);
+
+            for (int i = 0; i < PhoneNetwork.GetLength(0); i++)
+            {
+                for (int j = 0; j < PhoneNetwork.GetLength(1); j++)
+                    Console.Write(PhoneNetwork[i, j] ? "[1]" : "[0]");
+                Console.WriteLine();
+            }
+
+
+            /*int jumps = imageWithGrids.Width / 12;
+            //for (int i = jumps; i < imageWithGrids.Width; i += jumps * 2)
+            //{
+            //    for (int j = 0; j < imageWithGrids.Height; j++)
+            //    {
+            //        imageWithGrids.SetPixel(i, j, Color.Red);
+            //    }
+            //}*/
+
+            imageWithGrids.Save(PerspectiveTransformationWithGridPath, ImageFormat.Jpeg);
+            imageWithGrids.Dispose();
 
             Console.WriteLine("Image cropped and saved successfully.");
 
             //Process.Start(OutputImagePath);
-            Process.Start(PerspectiveTransformationPath);
+            //Process.Start(PerspectiveTransformationPath);
+            Process.Start(PerspectiveTransformationWithGridPath);
+        }
+        static bool[,] CountPhones(ref Bitmap image, (int Width, int Height) singlePocketImageSize)
+        {
+            PhoneNetwork = new bool[NumPerPocketRow, NumPerPocketColumn];
+            List<int> Ys = new List<int>();
+            List<bool> Colors = new List<bool>();
+
+            int count = 0, jumps = image.Width / 12;
+            bool sequence = false;
+
+            int y = 0, x, column = -1, row;
+            for (x = jumps; column != 5; x += jumps * 2)
+            {
+                column++;
+
+                for (y = 0; y < image.Height; y++)
+                {
+                    if (ColorDist(image.GetPixel(x, y), BackgroundPocketColor, 50))
+                        sequence = true;
+
+                    else
+                    {
+                        if (Ys.Count() > 2)
+                        {
+                            count++;
+                            y += singlePocketImageSize.Height;
+                            row = Ys.Last() / (image.Height / NumPerPocketRow);
+                            PhoneNetwork[row, column] = sequence;
+
+                            /*foreach (int Y in Ys)
+                            //{
+                                //for (int T = 0; T < imageWithGrids.Width; T++)// Draw a column from the edge of the imageWithGrids to the edge of the object
+                                //image.SetPixel(x, Y, Color.Red);
+                            //}*/
+
+                            Ys.Clear();
+                        }
+                        sequence = false;
+                    }
+
+                    if (sequence)
+                        Ys.Add(y);
+                }
+            }
+            Console.WriteLine("Number of pockets: " + count);
+            return PhoneNetwork;
+        }
+        static int CountNumber(ref Bitmap image, (int Width, int Height) SinglePocketImageSize)
+        {
+            List<int> Ys = new List<int>();
+
+            int count = 0, jumps = SinglePocketImageSize.Height;
+            bool foundInCell = true, sequence = false;
+
+            int y, x, NumOfFoundCells;
+            for (y = image.Height - 1; y >= 80; y -= 5)// with the new algorithm might be able to make y = image.Height
+            {
+                NumOfFoundCells = 1;
+                foundInCell = true;
+
+                for (int i = 0; foundInCell && NumOfFoundCells != 6; i++)
+                {
+                    foundInCell = false;
+
+                    for (x = image.Width / 12 * NumOfFoundCells; x < image.Width / 12 * (NumOfFoundCells + 1) && x < image.Width - image.Width / 12; x++)
+                    {
+                        if (ColorDist(image.GetPixel(x, y), NumberColor, 25))
+                        {
+                            NumOfFoundCells++;
+                            foundInCell = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundInCell && NumOfFoundCells == 6)
+                    sequence = true;
+                else
+                {
+                    if (Ys.Count() != 0)
+                    {
+                        count++;
+                        //jumps = Ys.First() - Ys.Last();
+                        y -= jumps;
+
+                        /*foreach (int Y in Ys)
+                        //{
+                        //    for (int i = 0; i < image.Width; i++)// Draw a line from the edge of the image to the edge of the object
+                        //        image.SetPixel(i, Y, Color.Red);
+                        //}*/
+
+                        Ys.Clear();
+                    }
+                    sequence = false;
+                }
+
+                if (sequence)
+                    Ys.Add(y);
+            }
+            return count;
         }
         static void FindObjectsCorners(ref Bitmap image)
         {
@@ -197,7 +339,7 @@ namespace RectangleShape2._0
             }
             Array.Copy(Corners, CroppedCorners, Corners.Length);
 
-            Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
+            //Console.WriteLine("\n" + Corners[whichCornerTouchesFirst] + "\n");
 
             bool foundCorner = false;
             (int X, int Y) secondPoint, truePoint;
@@ -267,8 +409,8 @@ namespace RectangleShape2._0
                 Line.Clear();
             }
 
-            foreach ((int X, int Y) i in Corners)
-                Console.WriteLine(i);
+            /*foreach ((int X, int Y) i in Corners)
+            //    Console.WriteLine(i);*/
         }
         public static (int X, int Y) HorizontalLine((int X, int Y) point1, (int X, int Y) point2, Bitmap image, int whichCornerTouchesFirst)
         {
@@ -596,6 +738,10 @@ namespace RectangleShape2._0
         static bool ColorDist(Color c1, Color c2)
         {
             return CalculateCIE76ColorDifference(c1.R, c1.G, c1.B, c2.R, c2.G, c2.B) <= ColorDistLimit;
+        }
+        static bool ColorDist(Color c1, Color c2, int colorDistLimit)
+        {
+            return CalculateCIE76ColorDifference(c1.R, c1.G, c1.B, c2.R, c2.G, c2.B) <= colorDistLimit;
         }
         public static double CalculateCIE76ColorDifference(int r1, int g1, int b1, int r2, int g2, int b2)
         {

@@ -9,14 +9,15 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace RectangleShape2._0
 {
     internal class Program
     {
         //PC
-        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\3.jpg";
-        static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\" + GetFileName(ImagePath) + ".jpg";
+        static string ImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\2.jpg";
+        static string OutputImagePath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\" + GetFileName(ImagePath) + ".2.0" + ".jpg";
         static string PerspectiveTransformationPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
         static string PerspectiveTransformationWithGridPath = @"C:\Users\USER\OneDrive\שולחן העבודה\Name list images\New folder\New folder\New folder\" + GetFileName(ImagePath) + ".jpg";
 
@@ -66,10 +67,12 @@ namespace RectangleShape2._0
             // Apply Canny edge detection
             Mat edges = new Mat();
             CvInvoke.Canny(grayImage, edges, 100, 200);
+            grayImage.Dispose();
 
             // Find contours in the edge-detected image
             VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint();
             CvInvoke.FindContours(edges, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
+            edges.Dispose();
 
             // Initialize variables to keep track of the largest rectangle
             double largestRectArea = 0;
@@ -92,6 +95,7 @@ namespace RectangleShape2._0
 
             // Draw the largest rectangle on the original image
             CvInvoke.Rectangle(img, largestRotatedRect.MinAreaRect(), new MCvScalar(0, 0, 255), 2);
+            img.Dispose();
 
             // Print the coordinates of the four cornersPoints and their locations
             PointF[] cornersPoints = largestRotatedRect.GetVertices();
@@ -143,6 +147,7 @@ namespace RectangleShape2._0
             image.Dispose();
 
             Bitmap croppedImage = CropImage(picture, x, y, width, height);
+            picture.Dispose();
 
             Corners[0] = (0, 0);
             Corners[1] = (croppedImage.Width - 1, 0);
@@ -170,17 +175,17 @@ namespace RectangleShape2._0
 
             // Save the cropped image
             croppedImage.Save(OutputImagePath, ImageFormat.Jpeg);
-
             Mat transformedImage = PerformPerspectiveTransformation(OutputImagePath, croppedImage, Corners);
+            File.Delete(OutputImagePath);
 
-            CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
+            //CvInvoke.Imwrite(PerspectiveTransformationPath, transformedImage);
 
             // Dispose of the image objects to free up resources
-            img.Dispose();
             croppedImage.Dispose();
-            transformedImage.Dispose();
+            //transformedImage.Dispose();
 
-            Bitmap imageWithGrids = new Bitmap(PerspectiveTransformationPath);
+            Bitmap imageWithGrids = new Bitmap(transformedImage.ToBitmap());
+            transformedImage.Dispose();
 
             ImageToRealRatio = imageWithGrids.Width / PocketTable.Width;
             (int Width, int Height) SinglePocketImageSize = ((int)(ImageToRealRatio * SinglePocket.Width), (int)(ImageToRealRatio * SinglePocket.Height));
@@ -192,7 +197,7 @@ namespace RectangleShape2._0
 
             for (int i = 0; i < PhoneNetwork.GetLength(0); i++)
             {
-                for (int j = 0; j < PhoneNetwork.GetLength(1); j++)
+                for (int j = 0; j < PhoneNetwork.GetLength(1); j++) 
                     Console.Write(PhoneNetwork[i, j] ? "[1]" : "[0]");
                 Console.WriteLine();
             }
@@ -207,26 +212,25 @@ namespace RectangleShape2._0
             //    }
             //}*/
 
-            imageWithGrids.Save(PerspectiveTransformationWithGridPath, ImageFormat.Jpeg);
+            //imageWithGrids.Save(PerspectiveTransformationWithGridPath, ImageFormat.Jpeg);
             imageWithGrids.Dispose();
 
             Console.WriteLine("Image cropped and saved successfully.");
 
             //Process.Start(OutputImagePath);
             //Process.Start(PerspectiveTransformationPath);
-            Process.Start(PerspectiveTransformationWithGridPath);
+            //Process.Start(PerspectiveTransformationWithGridPath);
         }
         static bool[,] CountPhones(ref Bitmap image, (int Width, int Height) singlePocketImageSize)
         {
             PhoneNetwork = new bool[NumPerPocketRow, NumPerPocketColumn];
             List<int> Ys = new List<int>();
-            List<bool> Colors = new List<bool>();
 
-            int count = 0, jumps = image.Width / 12;
+            int count = 0, jumps = image.Width / (NumPerPocketColumn * 2);
             bool sequence = false;
 
             int y = 0, x, column = -1, row;
-            for (x = jumps; column != 5; x += jumps * 2)
+            for (x = jumps; column != NumPerPocketColumn - 1; x += jumps * 2)
             {
                 column++;
 
@@ -244,11 +248,11 @@ namespace RectangleShape2._0
                             row = Ys.Last() / (image.Height / NumPerPocketRow);
                             PhoneNetwork[row, column] = sequence;
 
-                            /*foreach (int Y in Ys)
+                            //foreach (int Y in Ys)
                             //{
-                                //for (int T = 0; T < imageWithGrids.Width; T++)// Draw a column from the edge of the imageWithGrids to the edge of the object
-                                //image.SetPixel(x, Y, Color.Red);
-                            //}*/
+                            //    //for (int T = 0; T < imageWithGrids.Width; T++)// Draw a column from the edge of the imageWithGrids to the edge of the object
+                            //    image.SetPixel(x, Y, Color.Red);
+                            //}
 
                             Ys.Clear();
                         }
@@ -259,7 +263,7 @@ namespace RectangleShape2._0
                         Ys.Add(y);
                 }
             }
-            Console.WriteLine("Number of pockets: " + count);
+            Console.WriteLine("Number of rows: " + count);
             return PhoneNetwork;
         }
         static int CountNumber(ref Bitmap image, (int Width, int Height) SinglePocketImageSize)

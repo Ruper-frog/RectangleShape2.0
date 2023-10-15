@@ -45,10 +45,6 @@ namespace RectangleShape2._0
         static Color BackgroundPocketColor = Color.FromArgb(236, 186, 27);
         static void Main(string[] args)
         {
-            //TODO: align the frame: Done
-            //TODO: make sure that the if the corner of the object is slightly above the slope try to shorter the line or lower the line from a certain point
-            //      you maybe can look at all the other lines that been search up and see where the main problem is
-
             Mat img = CvInvoke.Imread(ImagePath, ImreadModes.Color);
 
             if (img == null || img.IsEmpty)

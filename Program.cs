@@ -275,11 +275,11 @@ namespace RectangleShape2._0
                 NumOfFoundCells = 1;
                 foundInCell = true;
 
-                for (int i = 0; foundInCell && NumOfFoundCells != 6; i++)
+                for (int i = 0; foundInCell && NumOfFoundCells != NumPerPocketColumn; i++)
                 {
                     foundInCell = false;
 
-                    for (x = image.Width / 12 * NumOfFoundCells; x < image.Width / 12 * (NumOfFoundCells + 1) && x < image.Width - image.Width / 12; x++)
+                    for (x = image.Width / (NumPerPocketColumn * 2) * NumOfFoundCells; x < image.Width / (NumPerPocketColumn * 2) * (NumOfFoundCells + 1) && x < image.Width - image.Width / (NumPerPocketColumn * 2); x++)
                     {
                         if (ColorDist(image.GetPixel(x, y), NumberColor, 25))
                         {
@@ -289,7 +289,7 @@ namespace RectangleShape2._0
                         }
                     }
                 }
-                if (foundInCell && NumOfFoundCells == 6)
+                if (foundInCell && NumOfFoundCells == NumPerPocketColumn)
                     sequence = true;
                 else
                 {

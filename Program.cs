@@ -110,12 +110,10 @@ namespace RectangleShape2._0
             for (int i = 0; i < cornersPoints.Length; i++)
             {
                 string currentString = cornersPoints[i].ToString();
-
                 Corners[i] = ((int)Math.Floor(Double.Parse(currentString.Substring(currentString.IndexOf('=') + 1, currentString.IndexOf(',') - currentString.IndexOf('=') - 1))), (int)Math.Floor(Double.Parse(currentString.Substring(currentString.IndexOf('=', currentString.IndexOf('=') + 1) + 1, currentString.IndexOf('}') - currentString.IndexOf('=', currentString.IndexOf('=') + 1) - 1))));
             }
 
             SelectionSortBy_Y(Corners);
-
             (int X, int Y)[] Top = { Corners[0], Corners[1] };
             SelectionSortBy_X(Top);
 
@@ -217,104 +215,148 @@ namespace RectangleShape2._0
             //Process.Start(PerspectiveTransformationPath);
             //Process.Start(PerspectiveTransformationWithGridPath);
         }
-        static bool[,] CountPhones(ref Bitmap image, (int Width, int Height) singlePocketImageSize)
+        public static void SelectionSortBy_Y((int X, int Y)[] arr)
         {
-            PhoneNetwork = new bool[NumPerPocketRow, NumPerPocketColumn];
-            List<int> Ys = new List<int>();
+            int n = arr.Length;
 
-            int count = 0, jumps = image.Width / (NumPerPocketColumn * 2);
-            bool sequence = false;
-
-            int y = 0, x, column = -1, row;
-            for (x = jumps; column != NumPerPocketColumn - 1; x += jumps * 2)
+            for (int i = 0; i < n - 1; i++)
             {
-                column++;
+                int minIndex = i;
 
-                for (y = 0; y < image.Height; y++)
+                // Find the index of the minimum element in the remaining unsorted portion
+                for (int j = i + 1; j < n; j++)
                 {
-                    if (ColorDist(image.GetPixel(x, y), BackgroundPocketColor, 50))
-                        sequence = true;
-
-                    else
+                    if (arr[j].Y < arr[minIndex].Y)
                     {
-                        if (Ys.Count() > 2)
-                        {
-                            count++;
-                            y += singlePocketImageSize.Height;
-                            row = Ys.Last() / (image.Height / NumPerPocketRow);
-                            PhoneNetwork[row, column] = sequence;
-
-                            //foreach (int Y in Ys)
-                            //{
-                            //    //for (int T = 0; T < imageWithGrids.Width; T++)// Draw a column from the edge of the imageWithGrids to the edge of the object
-                            //    image.SetPixel(x, Y, Color.Red);
-                            //}
-
-                            Ys.Clear();
-                        }
-                        sequence = false;
+                        minIndex = j;
                     }
+                }
 
-                    if (sequence)
-                        Ys.Add(y);
+                // Swap the found minimum element with the element at index Y
+                (int X, int Y) temp = arr[i];
+                arr[i] = arr[minIndex];
+                arr[minIndex] = temp;
+            }
+        }
+        public static void SelectionSortBy_X((int X, int Y)[] arr)
+        {
+            int n = arr.Length;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                int minIndex = i;
+
+                // Find the index of the minimum element in the remaining unsorted portion
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (arr[j].X < arr[minIndex].X)
+                    {
+                        minIndex = j;
+                    }
+                }
+
+                // Swap the found minimum element with the element at index Y
+                (int X, int Y) temp = arr[i];
+                arr[i] = arr[minIndex];
+                arr[minIndex] = temp;
+            }
+        }
+        public static void AlignRectangleCorners()
+        {
+            int minX = int.MaxValue;
+            int minY = int.MaxValue;
+            int maxX = int.MinValue;
+            int maxY = int.MinValue;
+
+            // Find the minimum and maximum X and Y coordinates among the corners
+            foreach ((int X, int Y) corner in Corners)
+            {
+                minX = Math.Min(minX, corner.X);
+                minY = Math.Min(minY, corner.Y);
+                maxX = Math.Max(maxX, corner.X);
+                maxY = Math.Max(maxY, corner.Y);
+            }
+
+            // Create a new array of aligned corners
+            (int X, int Y)[] alignedCorners = new (int X, int Y)[4];
+            Corners[0] = (minX, minY);
+            Corners[1] = (maxX, minY);
+            Corners[2] = (minX, maxY);
+            Corners[3] = (maxX, maxY);
+        }
+
+        static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
+        {
+            int rotationalCase = -1;
+            using (Image image = Image.FromFile(imagePath))
+            {
+                // Check for the orientation tag in the EXIF data
+                foreach (PropertyItem propertyItem in image.PropertyItems)
+                {
+                    if (propertyItem.Id == 0x112)
+                    {
+                        // Get the orientation value
+                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+
+                        // Rotate the image based on the orientation tag
+                        switch (orientation)
+                        {
+                            case 3:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate180);
+                                    rotationalCase = 0;
+                                }
+                                break;
+                            case 6:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90CounterClockwise);
+                                    rotationalCase = 1;
+                                }
+                                break;
+                            case 8:
+                                {
+                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90Clockwise);
+                                    rotationalCase = 2;
+                                }
+                                break;
+                                // Add more cases as needed for other orientations
+                        }
+                    }
                 }
             }
-            Console.WriteLine("Number of rows: " + count);
-            return PhoneNetwork;
+            return rotationalCase;
         }
-        static int CountNumber(ref Bitmap image, (int Width, int Height) SinglePocketImageSize)
+        static void RotateImageIfNecessaryForMatForImage(ref Image photo, string imagePath)
         {
-            List<int> Ys = new List<int>();
-
-            int count = 0, jumps = SinglePocketImageSize.Height;
-            bool foundInCell = true, sequence = false;
-
-            int y, x, NumOfFoundCells;
-            for (y = image.Height - 1; y >= 80; y -= 5)// with the new algorithm might be able to make y = image.Height
+            using (Image image = Image.FromFile(imagePath))
             {
-                NumOfFoundCells = 1;
-                foundInCell = true;
-
-                for (int i = 0; foundInCell && NumOfFoundCells != NumPerPocketColumn; i++)
+                // Check for the orientation tag in the EXIF data
+                foreach (PropertyItem propertyItem in image.PropertyItems)
                 {
-                    foundInCell = false;
-
-                    for (x = image.Width / (NumPerPocketColumn * 2) * NumOfFoundCells; x < image.Width / (NumPerPocketColumn * 2) * (NumOfFoundCells + 1) && x < image.Width - image.Width / (NumPerPocketColumn * 2); x++)
+                    if (propertyItem.Id == 0x112)
                     {
-                        if (ColorDist(image.GetPixel(x, y), NumberColor, 25))
+                        // Get the orientation value
+                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+
+                        // Rotate the image based on the orientation tag
+                        switch (orientation)
                         {
-                            NumOfFoundCells++;
-                            foundInCell = true;
-                            break;
+                            case 3:
+                                photo.RotateFlip(RotateFlipType.Rotate180FlipNone);// Rotate180
+                                break;
+                            case 6:
+                                photo.RotateFlip(RotateFlipType.Rotate90FlipNone);// Rotate90CounterClockwise
+                                break;
+                            case 8:
+                                photo.RotateFlip(RotateFlipType.Rotate270FlipNone);// Rotat90Clockwise
+                                break;
+                                // Add more cases as needed for other orientations
                         }
                     }
                 }
-                if (foundInCell && NumOfFoundCells == NumPerPocketColumn)
-                    sequence = true;
-                else
-                {
-                    if (Ys.Count() != 0)
-                    {
-                        count++;
-                        //jumps = Ys.First() - Ys.Last();
-                        y -= jumps;
-
-                        /*foreach (int Y in Ys)
-                        //{
-                        //    for (int i = 0; i < image.Width; i++)// Draw a line from the edge of the image to the edge of the object
-                        //        image.SetPixel(i, Y, Color.Red);
-                        //}*/
-
-                        Ys.Clear();
-                    }
-                    sequence = false;
-                }
-
-                if (sequence)
-                    Ys.Add(y);
             }
-            return count;
         }
+
         static void FindObjectsCorners(ref Bitmap image)
         {
             int whichCornerTouchesFirst = -1, secondCornerNumber;
@@ -504,6 +546,13 @@ namespace RectangleShape2._0
 
             return (x, y);
         }
+        static int CountTrueValues(List<bool> boolList)
+        {
+            // Use the Count method with a lambda expression to count true values
+            int count = boolList.Count(b => b == true); // You can also use b == true or simply b
+
+            return count;
+        }
         public static int FindLastTrueIndex(List<bool> list)
         {
             for (int i = list.Count() - 1; i >= 0; i--)
@@ -527,13 +576,6 @@ namespace RectangleShape2._0
             // If no 'true' value is found, you can return a default value or throw an exception.
             // For example, return -1 to indicate that there are no 'true' values in the array.
             return -1;
-        }
-        static int CountTrueValues(List<bool> boolList)
-        {
-            // Use the Count method with a lambda expression to count true values
-            int count = boolList.Count(b => b == true); // You can also use b == true or simply b
-
-            return count;
         }
 
         static Mat PerformPerspectiveTransformation(string imageFilePath, Bitmap image, (int X, int Y)[] points)
@@ -572,146 +614,105 @@ namespace RectangleShape2._0
             }
         }
 
-        static int RotateImageIfNecessaryForMat(ref Mat img, string imagePath)
+        static int CountNumber(ref Bitmap image, (int Width, int Height) SinglePocketImageSize)
         {
-            int rotationalCase = -1;
-            using (Image image = Image.FromFile(imagePath))
-            {
-                // Check for the orientation tag in the EXIF data
-                foreach (PropertyItem propertyItem in image.PropertyItems)
-                {
-                    if (propertyItem.Id == 0x112)
-                    {
-                        // Get the orientation value
-                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+            List<int> Ys = new List<int>();
 
-                        // Rotate the image based on the orientation tag
-                        switch (orientation)
+            int count = 0, jumps = SinglePocketImageSize.Height;
+            bool foundInCell = true, sequence = false;
+
+            int y, x, NumOfFoundCells;
+            for (y = image.Height - 1; y >= 80; y -= 5)// with the new algorithm might be able to make y = image.Height
+            {
+                NumOfFoundCells = 1;
+                foundInCell = true;
+
+                for (int i = 0; foundInCell && NumOfFoundCells != NumPerPocketColumn; i++)
+                {
+                    foundInCell = false;
+
+                    for (x = image.Width / (NumPerPocketColumn * 2) * NumOfFoundCells; x < image.Width / (NumPerPocketColumn * 2) * (NumOfFoundCells + 1) && x < image.Width - image.Width / (NumPerPocketColumn * 2); x++)
+                    {
+                        if (ColorDist(image.GetPixel(x, y), NumberColor, 25))
                         {
-                            case 3:
-                                {
-                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate180);
-                                    rotationalCase = 0;
-                                }
-                                break;
-                            case 6:
-                                {
-                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90CounterClockwise);
-                                    rotationalCase = 1;
-                                }
-                                break;
-                            case 8:
-                                {
-                                    CvInvoke.Rotate(img, img, RotateFlags.Rotate90Clockwise);
-                                    rotationalCase = 2;
-                                }
-                                break;
-                                // Add more cases as needed for other orientations
+                            NumOfFoundCells++;
+                            foundInCell = true;
+                            break;
                         }
                     }
                 }
-            }
-            return rotationalCase;
-        }
-        static void RotateImageIfNecessaryForMatForImage(ref Image photo, string imagePath)
-        {
-            using (Image image = Image.FromFile(imagePath))
-            {
-                // Check for the orientation tag in the EXIF data
-                foreach (PropertyItem propertyItem in image.PropertyItems)
+                if (foundInCell && NumOfFoundCells == NumPerPocketColumn)
+                    sequence = true;
+                else
                 {
-                    if (propertyItem.Id == 0x112)
+                    if (Ys.Count() != 0)
                     {
-                        // Get the orientation value
-                        int orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+                        count++;
+                        //jumps = Ys.First() - Ys.Last();
+                        y -= jumps;
 
-                        // Rotate the image based on the orientation tag
-                        switch (orientation)
+                        /*foreach (int Y in Ys)
+                        //{
+                        //    for (int i = 0; i < image.Width; i++)// Draw a line from the edge of the image to the edge of the object
+                        //        image.SetPixel(i, Y, Color.Red);
+                        //}*/
+
+                        Ys.Clear();
+                    }
+                    sequence = false;
+                }
+
+                if (sequence)
+                    Ys.Add(y);
+            }
+            return count;
+        }
+        static bool[,] CountPhones(ref Bitmap image, (int Width, int Height) singlePocketImageSize)
+        {
+            PhoneNetwork = new bool[NumPerPocketRow, NumPerPocketColumn];
+            List<int> Ys = new List<int>();
+
+            int count = 0, jumps = image.Width / (NumPerPocketColumn * 2);
+            bool sequence = false;
+
+            int y = 0, x, column = -1, row;
+            for (x = jumps; column != NumPerPocketColumn - 1; x += jumps * 2)
+            {
+                column++;
+
+                for (y = 0; y < image.Height; y++)
+                {
+                    if (ColorDist(image.GetPixel(x, y), BackgroundPocketColor, 50))
+                        sequence = true;
+
+                    else
+                    {
+                        if (Ys.Count() > 2)
                         {
-                            case 3:
-                                photo.RotateFlip(RotateFlipType.Rotate180FlipNone);// Rotate180
-                                break;
-                            case 6:
-                                photo.RotateFlip(RotateFlipType.Rotate90FlipNone);// Rotate90CounterClockwise
-                                break;
-                            case 8:
-                                photo.RotateFlip(RotateFlipType.Rotate270FlipNone);// Rotat90Clockwise
-                                break;
-                                // Add more cases as needed for other orientations
+                            count++;
+                            y += singlePocketImageSize.Height;
+                            row = Ys.Last() / (image.Height / NumPerPocketRow);
+                            PhoneNetwork[row, column] = sequence;
+
+                            //foreach (int Y in Ys)
+                            //{
+                            //    //for (int T = 0; T < imageWithGrids.Width; T++)// Draw a column from the edge of the imageWithGrids to the edge of the object
+                            //    image.SetPixel(x, Y, Color.Red);
+                            //}
+
+                            Ys.Clear();
                         }
+                        sequence = false;
                     }
+
+                    if (sequence)
+                        Ys.Add(y);
                 }
             }
+            Console.WriteLine("Number of rows: " + count);
+            return PhoneNetwork;
         }
-        public static void SelectionSortBy_Y((int X, int Y)[] arr)
-        {
-            int n = arr.Length;
 
-            for (int i = 0; i < n - 1; i++)
-            {
-                int minIndex = i;
-
-                // Find the index of the minimum element in the remaining unsorted portion
-                for (int j = i + 1; j < n; j++)
-                {
-                    if (arr[j].Y < arr[minIndex].Y)
-                    {
-                        minIndex = j;
-                    }
-                }
-
-                // Swap the found minimum element with the element at index Y
-                (int X, int Y) temp = arr[i];
-                arr[i] = arr[minIndex];
-                arr[minIndex] = temp;
-            }
-        }
-        public static void SelectionSortBy_X((int X, int Y)[] arr)
-        {
-            int n = arr.Length;
-
-            for (int i = 0; i < n - 1; i++)
-            {
-                int minIndex = i;
-
-                // Find the index of the minimum element in the remaining unsorted portion
-                for (int j = i + 1; j < n; j++)
-                {
-                    if (arr[j].X < arr[minIndex].X)
-                    {
-                        minIndex = j;
-                    }
-                }
-
-                // Swap the found minimum element with the element at index Y
-                (int X, int Y) temp = arr[i];
-                arr[i] = arr[minIndex];
-                arr[minIndex] = temp;
-            }
-        }
-        public static void AlignRectangleCorners()
-        {
-            int minX = int.MaxValue;
-            int minY = int.MaxValue;
-            int maxX = int.MinValue;
-            int maxY = int.MinValue;
-
-            // Find the minimum and maximum X and Y coordinates among the corners
-            foreach ((int X, int Y) corner in Corners)
-            {
-                minX = Math.Min(minX, corner.X);
-                minY = Math.Min(minY, corner.Y);
-                maxX = Math.Max(maxX, corner.X);
-                maxY = Math.Max(maxY, corner.Y);
-            }
-
-            // Create a new array of aligned corners
-            (int X, int Y)[] alignedCorners = new (int X, int Y)[4];
-            Corners[0] = (minX, minY);
-            Corners[1] = (maxX, minY);
-            Corners[2] = (minX, maxY);
-            Corners[3] = (maxX, maxY);
-        }
         // Function to crop an image based on an array of PointF coordinates
         static Bitmap CropImage(Bitmap image, int x, int y, int width, int height)
         {
